@@ -1,0 +1,143 @@
+---
+- hosts: client.example.com, gitserver.example.com
+  gather_facts: False
+  serial: 2
+#  ignore_errors: True
+  force_handlers: yes
+  vars:
+        message: "welcome to ansible\n"
+        message2: "love learn linux\n" 
+  tasks:
+  - name: create a file /etc/motd
+    copy:
+        dest: /etc/motd
+        content: "{{ message }}"
+    tags:
+        - motdfile
+  
+  - name: creating user clement
+    user:
+     name: clement
+     comment: Clement
+     state: absent
+    tags:
+        - usercreate
+#     uid: 1040
+#     group: admin
+ 
+#  - name: creating yum client
+#    copy:
+#        dest: /etc/yum.repos.d/alok.repo
+#        content: "[check]\nname=anything here\nbaseurl=http://server.example.com/rhel7\ngpgcheck=0\n"
+#        state: absent
+                
+
+#  - name: copy yum file
+#    copy:
+#        dest: /etc/yum.repos.d/alok2.repo
+#        src: /root/morning/jack.repo
+#        state: absent 
+
+  - name: create yum repo file
+    yum_repository:
+        name: magic
+        description: magic repo new
+        baseurl: http://server.example.com/rhel7
+        gpgcheck: 0
+    tags:
+        - yumclient
+
+  - name: install httpd 
+    yum:
+        name: httpd
+        state: latest
+    tags:
+        - installhttpd
+#    when: ansible_processor_cores >= 2
+    ignore_errors: yes
+
+  - name: copy html.conf file
+    copy:
+        dest: /etc/httpd/conf/httpd.conf
+        src: /root/morning/httpd.conf
+    notify: restart apache
+    tags: 
+        - copyconf
+
+  - name: copy index.html file
+    copy:
+        dest: /var/www/html/index.html
+        src: /root/morning/index.html
+    tags:
+        - copyhtml
+
+  - name: start httpd service
+    service:
+        name: httpd
+        state: started
+        enabled: true
+
+  - name: add http in firewall
+    firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+  - name: create multiple users
+    user:
+        name: "{{ item }}"
+        state: present
+    loop:
+        - userone
+        - usertwo
+        - userthree
+
+  - name: more users thing
+    user:
+        name: "{{ item.name }}"
+        state: present
+        groups: "{{ item.groups }}"
+    loop:
+        - { name: 'superman', groups: 'wheel' }
+        - { name: 'spiderman', groups: 'root' }
+
+
+  - name: custom packages 
+    yum:
+        name: "{{ item.name }}"
+        state: "{{ item.state }}"
+    loop:
+        - { name: 'vsftpd', state: 'latest' }
+        - { name: 'git', state: 'absent' }
+
+
+
+
+
+
+
+
+
+
+  handlers:
+        - name: restart apache
+          service:
+                name: httpd
+                state: restarted
+
+        - name: restart ftp
+          service:
+                name: vsftpd
+                state: restarted
+
+
+
+
+
+
+
+
+
+
+ 
